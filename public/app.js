@@ -19,9 +19,12 @@ const state = {
 };
 
 const PAGE_SIZE = 120;
+const THEME_STORAGE_KEY = "ptd:theme";
+const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
 
 const els = {
   statusText: document.querySelector("#statusText"),
+  themeBtn: document.querySelector("#themeBtn"),
   logoutBtn: document.querySelector("#logoutBtn"),
   signinView: document.querySelector("#signinView"),
   signinBtn: document.querySelector("#signinBtn"),
@@ -45,6 +48,45 @@ const els = {
   scrollSentinel: document.querySelector("#scrollSentinel"),
   trackTemplate: document.querySelector("#trackTemplate"),
 };
+
+function storedTheme() {
+  const value = localStorage.getItem(THEME_STORAGE_KEY);
+  return value === "light" || value === "dark" ? value : "system";
+}
+
+function resolvedTheme(mode = storedTheme()) {
+  if (mode === "system") return themeMedia.matches ? "dark" : "light";
+  return mode;
+}
+
+function applyTheme(mode = storedTheme()) {
+  const resolved = resolvedTheme(mode);
+  document.documentElement.dataset.themeMode = mode;
+  document.documentElement.dataset.theme = resolved;
+  els.themeBtn.title = `Theme: ${mode}`;
+  els.themeBtn.setAttribute("aria-label", `Theme: ${mode}`);
+}
+
+function cycleTheme() {
+  const current = storedTheme();
+  const next = current === "system" ? "dark" : current === "dark" ? "light" : "system";
+  if (next === "system") {
+    localStorage.removeItem(THEME_STORAGE_KEY);
+  } else {
+    localStorage.setItem(THEME_STORAGE_KEY, next);
+  }
+  applyTheme(next);
+}
+
+applyTheme();
+const handleThemeMediaChange = () => {
+  if (storedTheme() === "system") applyTheme("system");
+};
+if (themeMedia.addEventListener) {
+  themeMedia.addEventListener("change", handleThemeMediaChange);
+} else {
+  themeMedia.addListener(handleThemeMediaChange);
+}
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -179,14 +221,19 @@ function applyActiveUri(uri) {
 }
 
 function renderLibraries() {
+  const preferredLibrary =
+    state.libraries.find((library) => library.title?.toLowerCase() === "music")
+    || state.libraries.find((library) => library.title?.toLowerCase().includes("music"))
+    || state.libraries[0];
   const options = state.libraries.map((library) => {
     const option = document.createElement("option");
     option.value = library.key;
     option.textContent = library.title;
+    option.selected = library.key === preferredLibrary?.key;
     return option;
   });
   els.librarySelect.replaceChildren(...options);
-  state.selectedLibrary = options.length ? els.librarySelect.value : null;
+  state.selectedLibrary = preferredLibrary ? String(preferredLibrary.key) : null;
   els.searchInput.disabled = !state.selectedLibrary;
   els.metaLine.textContent = state.selectedLibrary
     ? "Ready. Search for a track and download the original file."
@@ -548,6 +595,7 @@ function resumePendingSignin() {
 }
 
 els.signinBtn.addEventListener("click", startSignin);
+els.themeBtn.addEventListener("click", cycleTheme);
 els.logoutBtn.addEventListener("click", logout);
 els.serverSelect.addEventListener("change", () => {
   loadLibraries().catch((error) => showError(error));
