@@ -335,14 +335,12 @@ function setBrowseMode(mode) {
 function trackRow(track) {
   const row = els.trackTemplate.content.firstElementChild.cloneNode(true);
   const title = row.querySelector("h2");
-  const artist = row.querySelector(".artist");
-  const album = row.querySelector(".album");
+  const meta = row.querySelector(".track-meta");
   const tech = row.querySelector(".track-tech");
   const link = row.querySelector(".download-button");
 
   title.textContent = track.title;
-  artist.textContent = track.artist || "Unknown artist";
-  album.textContent = [track.album, track.year].filter(Boolean).join(" - ");
+  meta.textContent = [track.artist || "Unknown artist", track.album, track.year].filter(Boolean).join(" - ");
   tech.textContent = [track.duration, track.codec, track.bitrate, track.size].filter(Boolean).join(" | ");
   link.href = downloadUrl(track);
   link.classList.toggle("disabled", !track.hasDownload);

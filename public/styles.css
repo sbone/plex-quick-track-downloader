@@ -466,7 +466,7 @@ input:focus {
 
 .results {
   display: grid;
-  gap: 8px;
+  gap: 5px;
 }
 
 .results.is-preserving-space {
@@ -503,13 +503,13 @@ input:focus {
 
 .track-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(140px, 220px) 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 210px) 38px;
   align-items: center;
-  gap: 10px;
-  min-height: 54px;
-  padding: 7px 8px 7px 12px;
+  gap: 8px;
+  min-height: 43px;
+  padding: 5px 6px 5px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--row-panel);
 }
 
@@ -522,30 +522,32 @@ input:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 15px;
-  line-height: 1.2;
+  font-size: 14px;
+  line-height: 1.15;
   letter-spacing: 0;
 }
 
 .track-main p {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
+  font-size: 12px;
+  line-height: 1.15;
 }
 
 .track-tech {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   text-align: right;
 }
 
 .download-button {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   text-decoration: none;
 }
 
@@ -645,8 +647,8 @@ input:focus {
   }
 
   .track-row {
-    grid-template-columns: minmax(0, 1fr) 42px;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) 34px;
+    gap: 8px;
   }
 
   .track-tech {
