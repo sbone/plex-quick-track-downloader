@@ -16,6 +16,8 @@ const state = {
   hasMore: false,
   loadingPage: false,
   pageSerial: 0,
+  queuedSearch: false,
+  preservingEmptySpace: false,
 };
 
 const PAGE_SIZE = 120;
@@ -34,6 +36,7 @@ const els = {
   pickerView: document.querySelector("#pickerView"),
   serverSelect: document.querySelector("#serverSelect"),
   librarySelect: document.querySelector("#librarySelect"),
+  searchStickSentinel: document.querySelector("#searchStickSentinel"),
   searchView: document.querySelector("#searchView"),
   searchInput: document.querySelector("#searchInput"),
   metaLine: document.querySelector("#metaLine"),
@@ -192,6 +195,22 @@ function applyPage(payload) {
   updatePager();
 }
 
+function preserveEmptyResultsSpace() {
+  if (!els.searchView.classList.contains("is-stuck")) return;
+  const height = Math.ceil(els.results.getBoundingClientRect().height);
+  if (height <= 0) return;
+  els.results.style.minHeight = `${height}px`;
+  els.results.classList.add("is-preserving-space");
+  state.preservingEmptySpace = true;
+}
+
+function releaseEmptyResultsSpace() {
+  if (!state.preservingEmptySpace) return;
+  els.results.style.minHeight = "";
+  els.results.classList.remove("is-preserving-space");
+  state.preservingEmptySpace = false;
+}
+
 function renderServers() {
   const options = [];
   for (const server of state.servers) {
@@ -257,6 +276,7 @@ async function loadServers() {
 
 async function loadLibraries() {
   showError();
+  releaseEmptyResultsSpace();
   els.results.replaceChildren();
   resetPaging();
   state.libraries = [];
@@ -330,9 +350,10 @@ function trackRow(track) {
   return row;
 }
 
-function renderTracks(tracks, { append = false } = {}) {
+function renderTracks(tracks, { append = false, reserveEmpty = false } = {}) {
   if (!tracks.length) {
     if (append) return;
+    if (reserveEmpty) preserveEmptyResultsSpace();
     const empty = document.createElement("p");
     empty.className = "empty";
     empty.textContent = els.searchInput.value.trim().length < 2 ? "Type at least two characters." : "No tracks found.";
@@ -340,6 +361,7 @@ function renderTracks(tracks, { append = false } = {}) {
     return;
   }
 
+  if (!append) releaseEmptyResultsSpace();
   const rows = tracks.map(trackRow);
   if (append) {
     els.results.append(...rows);
@@ -375,6 +397,7 @@ function browseRow(item, mode) {
 }
 
 function renderBrowseItems(payload, { append = false } = {}) {
+  if (!append) releaseEmptyResultsSpace();
   if (payload.mode === "artists" || payload.mode === "albums") {
     const rows = payload.items.map((item) => browseRow(item, payload.mode));
     if (append) {
@@ -430,6 +453,7 @@ async function loadBrowse({ reset = false, append = false } = {}) {
   if (state.loadingPage) return;
   if (reset) {
     resetPaging();
+    releaseEmptyResultsSpace();
     els.results.replaceChildren();
   }
   const serial = state.pageSerial;
@@ -462,23 +486,32 @@ async function loadBrowse({ reset = false, append = false } = {}) {
   }
 }
 
-async function searchTracks({ reset = false, append = false } = {}) {
+async function searchTracks({ reset = false, append = false, keepResults = false } = {}) {
   const q = els.searchInput.value.trim();
   if (!state.selectedLibrary || q.length < 2) {
     if (reset) resetPaging();
-    if (!append) renderTracks([]);
+    if (!append && !keepResults) renderTracks([]);
     return;
   }
 
+  if (state.loadingPage) {
+    if (!append) {
+      state.activeSearch += 1;
+      state.queuedSearch = true;
+      els.searchView.classList.add("is-searching");
+      els.metaLine.textContent = "Searching...";
+    }
+    return;
+  }
   const searchId = ++state.activeSearch;
-  if (state.loadingPage) return;
   if (reset) {
     resetPaging();
-    els.results.replaceChildren();
+    if (!keepResults) els.results.replaceChildren();
   }
   const serial = state.pageSerial;
   state.loadingPage = true;
   updatePager();
+  els.searchView.classList.toggle("is-searching", !append);
   const { serverId, uri } = selectedServerParts();
   els.metaLine.textContent = append ? "Loading more..." : "Searching...";
   try {
@@ -490,9 +523,19 @@ async function searchTracks({ reset = false, append = false } = {}) {
       offset: state.offset,
       limit: PAGE_SIZE,
     })}`);
-    if (searchId !== state.activeSearch || serial !== state.pageSerial) return;
+    if (searchId !== state.activeSearch || serial !== state.pageSerial) {
+      state.loadingPage = false;
+      updatePager();
+      if (!append && state.queuedSearch) {
+        state.queuedSearch = false;
+        searchTracks({ reset: true, keepResults: true }).catch((error) => showError(error));
+      } else if (!append) {
+        els.searchView.classList.remove("is-searching");
+      }
+      return;
+    }
     applyActiveUri(payload.serverUri);
-    renderTracks(payload.tracks, { append });
+    renderTracks(payload.tracks, { append, reserveEmpty: !append });
     applyPage({
       items: payload.tracks,
       offset: payload.offset,
@@ -500,10 +543,17 @@ async function searchTracks({ reset = false, append = false } = {}) {
     });
     updateIndexStatus(payload.index || {});
     els.metaLine.textContent = `${state.totalItems.toLocaleString()} result${state.totalItems === 1 ? "" : "s"}${payload.source ? ` from ${payload.source}` : ""}`;
+    els.searchView.classList.remove("is-searching");
+    if (!append && state.queuedSearch) {
+      state.queuedSearch = false;
+      searchTracks({ reset: true, keepResults: true }).catch((error) => showError(error));
+    }
   } catch (error) {
     if (searchId !== state.activeSearch) return;
     state.loadingPage = false;
+    state.queuedSearch = false;
     updatePager();
+    els.searchView.classList.remove("is-searching");
     showError(error);
     els.metaLine.textContent = "Search failed.";
   }
@@ -567,6 +617,7 @@ async function logout() {
   window.clearInterval(state.indexPoll);
   state.indexPoll = null;
   resetPaging();
+  releaseEmptyResultsSpace();
   els.results.replaceChildren();
   els.searchInput.value = "";
   setStatus("Signed out.");
@@ -606,6 +657,7 @@ els.librarySelect.addEventListener("change", () => {
   state.artist = "";
   state.album = "";
   resetPaging();
+  releaseEmptyResultsSpace();
   els.results.replaceChildren();
   startIndex()
     .then(() => loadBrowse({ reset: true }))
@@ -618,7 +670,7 @@ els.searchInput.addEventListener("input", () => {
     if (els.searchInput.value.trim().length < 2) {
       loadBrowse({ reset: true }).catch((error) => showError(error));
     } else {
-      searchTracks({ reset: true });
+      searchTracks({ reset: true, keepResults: true });
     }
   }, 80);
 });
@@ -637,6 +689,16 @@ const observer = new IntersectionObserver((entries) => {
   rootMargin: "900px 0px",
 });
 observer.observe(els.scrollSentinel);
+
+const stickyObserver = new IntersectionObserver((entries) => {
+  const entry = entries[0];
+  const isStuck = !entry.isIntersecting && !els.searchView.classList.contains("hidden");
+  els.searchView.classList.toggle("is-stuck", isStuck);
+  if (!isStuck) releaseEmptyResultsSpace();
+}, {
+  threshold: 0,
+});
+stickyObserver.observe(els.searchStickSentinel);
 
 api("/api/session")
   .then(async (session) => {

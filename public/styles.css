@@ -13,6 +13,7 @@
   --soft-panel: rgba(255, 255, 255, 0.86);
   --row-panel: rgba(255, 255, 255, 0.92);
   --chip-panel: rgba(255, 255, 255, 0.82);
+  --sticky-panel: rgba(243, 245, 241, 0.92);
   --error-bg: #fff4f2;
   --error-border: #e6afa7;
   --error-ink: #8a2718;
@@ -38,6 +39,7 @@
     --soft-panel: rgba(23, 29, 26, 0.9);
     --row-panel: rgba(23, 29, 26, 0.94);
     --chip-panel: rgba(23, 29, 26, 0.86);
+    --sticky-panel: rgba(16, 20, 18, 0.92);
     --error-bg: #331a17;
     --error-border: #7e352b;
     --error-ink: #ffc8c0;
@@ -63,6 +65,7 @@
   --soft-panel: rgba(23, 29, 26, 0.9);
   --row-panel: rgba(23, 29, 26, 0.94);
   --chip-panel: rgba(23, 29, 26, 0.86);
+  --sticky-panel: rgba(16, 20, 18, 0.92);
   --error-bg: #331a17;
   --error-border: #7e352b;
   --error-ink: #ffc8c0;
@@ -254,12 +257,35 @@ button:disabled {
 
 .signin-view,
 .picker-view,
-.search-view,
 .browse-tabs,
 .crumbs,
 .pager,
 .error-box {
   margin-bottom: 14px;
+}
+
+.stick-sentinel {
+  height: 1px;
+}
+
+.search-view {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 -8px 14px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  will-change: background-color, box-shadow;
+}
+
+.search-view.is-stuck {
+  border-color: var(--line);
+  background: var(--sticky-panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
 }
 
 .signin-view,
@@ -350,6 +376,11 @@ input:focus {
   padding-left: 48px;
   font-size: 18px;
   box-shadow: var(--shadow);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.search-view.is-searching .search-box input {
+  border-color: var(--focus);
 }
 
 .search-icon {
@@ -436,6 +467,10 @@ input:focus {
 .results {
   display: grid;
   gap: 8px;
+}
+
+.results.is-preserving-space {
+  align-content: start;
 }
 
 .pager {
@@ -600,6 +635,13 @@ input:focus {
   .brand-mark {
     width: 44px;
     height: 44px;
+  }
+
+  .search-view {
+    margin-right: -4px;
+    margin-left: -4px;
+    padding-right: 4px;
+    padding-left: 4px;
   }
 
   .track-row {
