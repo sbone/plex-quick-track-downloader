@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Plex Track Downloader</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+          </div>
+          <div>
+            <h1>Plex Track Downloader</h1>
+            <p id="statusText">Sign in with your Plex owner account.</p>
+          </div>
+        </div>
+        <button id="logoutBtn" class="icon-button hidden" title="Sign out" aria-label="Sign out">
+          <span class="logout-icon" aria-hidden="true"></span>
+        </button>
+      </header>
+
+      <section id="signinView" class="signin-view">
+        <button id="signinBtn" class="primary-button">Sign in with Plex</button>
+        <div id="pinPanel" class="pin-panel hidden">
+          <span class="label">Waiting for Plex</span>
+          <strong id="pinCode"></strong>
+          <a id="authLink" target="_blank" rel="noreferrer">Open Plex sign-in</a>
+        </div>
+      </section>
+
+      <section id="pickerView" class="picker-view hidden">
+        <label>
+          <span>Server</span>
+          <select id="serverSelect"></select>
+        </label>
+        <label>
+          <span>Music Library</span>
+          <select id="librarySelect"></select>
+        </label>
+      </section>
+
+      <section id="searchView" class="search-view hidden">
+        <div class="search-box">
+          <span class="search-icon" aria-hidden="true"></span>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="Search title, artist, remix, edit">
+        </div>
+        <div class="utility-row">
+          <div id="metaLine" class="meta-line">Choose a music library.</div>
+          <div id="indexStatus" class="index-status">Index idle</div>
+        </div>
+      </section>
+
+      <nav id="browseTabs" class="browse-tabs hidden" aria-label="Browse">
+        <button data-mode="recent" class="active">Recent</button>
+        <button data-mode="artists">Artists</button>
+        <button data-mode="albums">Albums</button>
+        <button data-mode="tracks">Tracks</button>
+      </nav>
+
+      <section id="crumbs" class="crumbs hidden"></section>
+
+      <section id="errorBox" class="error-box hidden"></section>
+      <section id="results" class="results" aria-live="polite"></section>
+      <footer id="pager" class="pager hidden">
+        <button id="loadMoreBtn">Load More</button>
+        <div id="pageStatus" class="page-status"></div>
+      </footer>
+      <div id="scrollSentinel" class="scroll-sentinel" aria-hidden="true"></div>
+    </main>
+
+    <template id="trackTemplate">
+      <article class="track-row">
+        <div class="track-main">
+          <h2></h2>
+          <p class="artist"></p>
+          <p class="album"></p>
+        </div>
+        <div class="track-tech"></div>
+        <a class="download-button" title="Download original file" aria-label="Download original file">
+          <span class="download-icon" aria-hidden="true"></span>
+        </a>
+      </article>
+    </template>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
